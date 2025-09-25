@@ -1,35 +1,70 @@
 import requests
 import json
-from deep_translator import GoogleTranslator as Translator
+import geocoder
 
-API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjY4MGU3ZmVlOGRiNGMwZTFmMmNlN2NmZDg0OTg5YjczNmQ1NDM0NDBkZTk0NjVhZDI2ZmI4NjQ2IiwiaCI6Im11cm11cjY0In0="
+API_KEY = "SUA_CHAVE_API_AQUI"
 
-origem = (-45.70995866888095, -23.10623100450314)
-destino = (-45.710132020008736, -23.106053337439732)
+def geoCode(endereco):
+    url = "https://api.openrouteservice.org/geocode/search"
+    params = {
+        "api_key": API_KEY,
+        "text": endereco,
+        "size": 1
+    }
 
-start = f"{origem[0]},{origem[1]}"
-end = f"{destino[0]},{destino[1]}"
+    resp = requests.get(url, params=params)
+    dados = resp.json()
 
-url = f"https://api.openrouteservice.org/v2/directions/foot-walking?start={start}&end={end}"
+    if "features" in dados and len(dados["features"]) > 0:
+        coords = dados["features"][0]["geometry"]["coordinates"]
+        label = dados["features"][0]["properties"]["label"]
+        return coords, label
+    else:
+        raise ValueError(f"Endereço não encontrado: {endereco}")
 
-headers = {
-    "Authorization": API_KEY
-}
+usar_localizacao = True  
+
+if usar_localizacao:
+    g = geocoder.ip('me')
+    origem_coords = [g.lng, g.lat]
+    origem_label = "Sua localização aproximada"
+else:
+    origem_txt = input("Digite a origem: ")
+    origem_coords, origem_label = geoCode(origem_txt)
+
+destino_txt = input("Digite o destino: ")
+
+try:
+    destino_coords, destino_label = geoCode(destino_txt)
+except ValueError as e:
+    print(e)
+    exit()
+
+print(f"Origem encontrada: {origem_label}")
+print(f"Destino encontrado: {destino_label}")
+
+url = f"https://api.openrouteservice.org/v2/directions/foot-walking?start={origem_coords[0]},{origem_coords[1]}&end={destino_coords[0]},{destino_coords[1]}"
+headers = {"Authorization": API_KEY}
 
 response = requests.get(url, headers=headers)
 data = response.json()
+
+if "features" not in data:
+    print("Erro ao calcular rota!")
+    print(json.dumps(data, indent=4, ensure_ascii=False))
+    exit()
 
 segmento = data["features"][0]["properties"]["segments"][0]
 distancia = segmento["distance"]
 duracao = segmento["duration"]
 passos = [step["instruction"] for step in segmento["steps"]]
 
-traduzidos = [Translator(source='en', target='pt').translate(passo) for passo in passos]
-
 payload = {
-    "distancia": int(distancia),
-    "duracao": int(duracao),
-    "proximos_passos": traduzidos
+    "distancia_metros": int(distancia),
+    "distancia_km": round(distancia / 1000, 2),
+    "duracao_segundos": int(duracao),
+    "duracao_minutos": round(duracao / 60, 1),
+    "proximos_passos": passos
 }
 
 print(json.dumps(payload, indent=4, ensure_ascii=False))
