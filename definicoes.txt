@@ -1,0 +1,12 @@
+///////////////////////////////////////////////////
+//  Definidos para a função do mapa no NeoView  //
+//////////////////////////////////////////////////
+
+[Definições técnicas]
+├─ Usar WebSocket para a comunicação;
+└─ Esp32 será o servidor WebSocket.
+
+[Definições físicas]
+├─ Usar GPS do celular;
+├─ Módulo de microfone: definir;
+└─ Módulo de áudio: definir.
