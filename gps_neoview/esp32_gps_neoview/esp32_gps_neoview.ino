@@ -1,27 +1,32 @@
-#include <Wifi.h>
 #include <WebSocketsServer.h>
+#include <WiFi.h>
 
-const char* ssid = "";
-const char* password = "";
+String destino = "Mercado Carrefour";
+
+const char* ssid = "neoview_rede";
+const char* password = "neoview_testes123";
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) {
-  if(type == WStype_TEXT) {
+void webSocketEvent(uint8_t, WStype_t type, uint8_t* payload, size_t) {
+  if(type == WStype_CONNECTED){
+    Serial.println("Cliente conectado");
+    webSocket.sendTXT(0, "Destino: " + destino);
+  }
+  else if(type == WStype_TEXT) {
     String msg = String((char*)payload);
-    Serial.printf("Mensagem recebida do cliente %u: %s\n", num, msg.c_str());
-    // continuar com voz...
+    Serial.println("Mensagem recebida: " + msg);
   }
 }
 
 void setup() {
   Serial.begin(115200);
   WiFi.softAP(ssid, password);
-  Serial.print("AP iniciado. IP do ESP32: ");
-  Serial.println(WiFi.softAPIP());
 
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
+
+  Serial.println("WebSocket iniciado!");
 }
 
 void loop() {
